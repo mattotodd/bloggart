@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-{% autoescape off %}
+{% autoescape false %}
 <head>
   <title>{% block title %}Bloggart{% endblock %}</title>
   {% block style %}
@@ -29,8 +29,8 @@
 		<p id="intro">{{config.slogan}}</p>
 		<div  id="nav">
 			<ul>
-				<li{% ifequal generator_class "IndexContentGenerator" %} id="current"{% endifequal %}><a href="{{config.url_prefix}}/">Home</a></li>
-				<li{% ifequal generator_class "ArchiveIndexContentGenerator" %} id="current"{% else %}{% ifequal generator_class "ArchivePageContentGenerator" %} id="current"{% endifequal %}{% endifequal %}><a href="{{config.url_prefix}}/archive/">Archive</a></li>
+				<li{% if generator_class == "IndexContentGenerator" %} id="current"{% endif %}><a href="{{config.url_prefix}}/">Home</a></li>
+				<li{% if generator_class == "ArchiveIndexContentGenerator" %} id="current"{% else %}{% if generator_class == "ArchivePageContentGenerator" %} id="current"{% endif %}{% endif %}><a href="{{config.url_prefix}}/archive/">Archive</a></li>
         {% block menu %}{% endblock %}
 			</ul>
 		</div>		

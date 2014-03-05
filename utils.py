@@ -4,13 +4,16 @@ import unicodedata
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.template import _swap_settings
+from google.appengine.runtime import cgi
+from google.appengine.api.app_identity import get_application_id
 
-import django.conf
-from django import template
-from django.template import loader
+from jinja2 import Environment, ChoiceLoader, FileSystemLoader
 
 import config
 import xsrfutil
+
+
+re_newlines = re.compile(r'\r\n|\r')
 
 BASE_DIR = os.path.dirname(__file__)
 
@@ -21,6 +24,15 @@ else:
   if config.theme and config.theme != 'default':
     TEMPLATE_DIRS.insert(0,
                          os.path.abspath(os.path.join(BASE_DIR, 'themes', config.theme)))
+
+loaders = []
+for dir in TEMPLATE_DIRS:
+    try:
+        loaders.append(FileSystemLoader(dir))
+    except:
+        pass
+
+TEMPLATE_ENV = Environment(autoescape=True, extensions=['jinja2.ext.autoescape'], loader=ChoiceLoader(loaders))
 
 
 def slugify(s):
@@ -52,17 +64,10 @@ def get_template_vals_defaults(template_vals=None):
 
 
 def render_template(template_name, template_vals=None, theme=None):
-  register = webapp.template.create_template_register()
-  register.filter('xsrf_token', xsrfutil.xsrf_token)
-  template.builtins.append(register)
   template_vals = get_template_vals_defaults(template_vals)
   template_vals.update({'template_name': template_name})
-  old_settings = _swap_settings({'TEMPLATE_DIRS': TEMPLATE_DIRS})
-  try:
-    tpl = loader.get_template(template_name)
-    rendered = tpl.render(template.Context(template_vals))
-  finally:
-    _swap_settings(old_settings)
+  tpl = TEMPLATE_ENV.get_template(template_name)
+  rendered = tpl.render(**template_vals)
   return rendered
 
 
@@ -124,6 +129,33 @@ def tzinfo():
     return klass()
   except ImportError:
     return None
+
+def strip_tags(input_string):
+    return re.sub('<[^<]+?>', '', input_string)
+
+## via django ##
+
+def smart_truncate(content, length=100, suffix='...'):
+    if len(content) <= length:
+        return content
+    else:
+        return ' '.join(content[:length+1].split(' ')[0:-1]) + suffix
+
+def normalize_newlines(text):
+    """Normalizes CRLF and CR newlines to just LF."""
+    return re_newlines.sub('\n', text)
+
+def linebreaks(value, autoescape=False):
+    """Converts newlines into <p> and <br />s."""
+    value = normalize_newlines(value)
+    paras = re.split('\n{2,}', value)
+    if autoescape:
+        paras = ['<p>%s</p>' % cgi.escape(p).replace('\n', '<br />') for p in paras]
+    else:
+        paras = ['<p>%s</p>' % p.replace('\n', '<br />') for p in paras]
+    return '\n\n'.join(paras)
+
+## end via django ##
 
 def tz_field(property):
   """

@@ -17,7 +17,6 @@ REMOTE_API_PATH = '/remote_api'
 EXTRA_PATHS = [
 	SDK_DIR,
 	os.path.join(SDK_DIR, 'lib', 'antlr3'),
-	os.path.join(SDK_DIR, 'lib', 'django'),
 	os.path.join(SDK_DIR, 'lib', 'webob'),
 	os.path.join(SDK_DIR, 'lib', 'yaml', 'lib'),
 	APP_DIR,

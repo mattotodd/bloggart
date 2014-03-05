@@ -1,7 +1,8 @@
-application: bloggart-demo
+application: bloggart27
 version: live
-runtime: python
+runtime: python27
 api_version: 1
+threadsafe: false
 
 skip_files: |
  ^(.*/)?(
@@ -14,6 +15,9 @@ skip_files: |
  (.*\.py[co])|
  )$
 
+libraries:
+- name: jinja2
+  version: latest
 
 handlers:
 - url: /remote_api

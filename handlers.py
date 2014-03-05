@@ -12,23 +12,38 @@ import post_deploy
 import utils
 import xsrfutil
 
-from django import forms
-from google.appengine.ext.db import djangoforms
+#from django import forms
+#from google.appengine.ext.db import djangoforms
+from wtforms_appengine import Form, StringField, SelectField, Textarea, BooleanField
 
 
-class PostForm(djangoforms.ModelForm):
-  title = forms.CharField(widget=forms.TextInput(attrs={'id':'name'}))
-  body = forms.CharField(widget=forms.Textarea(attrs={
+class PostForm(Form):
+  title = StringField(id='name')
+  body = StringField(id='message', widget=Textarea(attrs={
       'id':'message',
       'rows': 10,
       'cols': 20}))
-  body_markup = forms.ChoiceField(
+  body_markup = SelectField(
     choices=[(k, v[0]) for k, v in markup.MARKUP_MAP.iteritems()])
-  tags = forms.CharField(widget=forms.Textarea(attrs={'rows': 5, 'cols': 20}))
-  draft = forms.BooleanField(required=False)
+  tags = StringField(widget=Textarea())
+  draft = BooleanField(required=False)
   class Meta:
     model = models.BlogPost
     fields = [ 'title', 'body', 'tags' ]
+
+#class PostForm(Form):
+#  title = StringField(id='name')
+#  body = StringField(id='message', widget=Textarea(attrs={
+#      'id':'message',
+#      'rows': 10,
+#      'cols': 20}))
+#  body_markup = forms.ChoiceField(
+#    choices=[(k, v[0]) for k, v in markup.MARKUP_MAP.iteritems()])
+#  tags = forms.CharField(widget=forms.Textarea(attrs={'rows': 5, 'cols': 20}))
+#  draft = forms.BooleanField(required=False)
+#  class Meta:
+#    model = models.BlogPost
+#    fields = [ 'title', 'body', 'tags' ]
 
 
 def with_post(fun):
@@ -141,26 +156,26 @@ class RegenerateHandler(BaseHandler):
     self.render_to_response("regenerating.html")
 
 
-class PageForm(djangoforms.ModelForm):
-  path = forms.RegexField(
-    widget=forms.TextInput(attrs={'id':'path'}), 
-    regex='(/[a-zA-Z0-9/]+)')
-  title = forms.CharField(widget=forms.TextInput(attrs={'id':'title'}))
-  template = forms.ChoiceField(choices=config.page_templates.items())
-  body = forms.CharField(widget=forms.Textarea(attrs={
-      'id':'body',
-      'rows': 10,
-      'cols': 20}))
-  class Meta:
-    model = models.Page
-    fields = [ 'path', 'title', 'template', 'body' ]
-
-  def clean_path(self):
-    data = self._cleaned_data()['path']
-    existing_page = models.Page.get_by_key_name(data)
-    if not data and existing_page:
-      raise forms.ValidationError("The given path already exists.")
-    return data
+#class PageForm(djangoforms.ModelForm):
+#  path = forms.RegexField(
+#    widget=forms.TextInput(attrs={'id':'path'}),
+#    regex='(/[a-zA-Z0-9/]+)')
+#  title = forms.CharField(widget=forms.TextInput(attrs={'id':'title'}))
+#  template = forms.ChoiceField(choices=config.page_templates.items())
+#  body = forms.CharField(widget=forms.Textarea(attrs={
+#      'id':'body',
+#      'rows': 10,
+#      'cols': 20}))
+#  class Meta:
+#    model = models.Page
+#    fields = [ 'path', 'title', 'template', 'body' ]
+#
+#  def clean_path(self):
+#    data = self._cleaned_data()['path']
+#    existing_page = models.Page.get_by_key_name(data)
+#    if not data and existing_page:
+#      raise forms.ValidationError("The given path already exists.")
+#    return data
 
 
 class PageAdminHandler(BaseHandler):
@@ -193,41 +208,41 @@ def with_page(fun):
   return decorate
 
 
-class PageHandler(BaseHandler):
-  def render_form(self, form):
-    self.render_to_response("editpage.html", {'form': form})
-
-  @with_page
-  def get(self, page):
-    self.render_form(PageForm(
-        instance=page,
-        initial={
-          'path': page and page.path or '/',
-        }))
-
-  @xsrfutil.xsrf_protect
-  @with_page
-  def post(self, page):
-    form = None
-    # if the path has been changed, create a new page
-    if page and page.path != self.request.POST['path']:
-      form = PageForm(data=self.request.POST, instance=None, initial={})
-    else:
-      form = PageForm(data=self.request.POST, instance=page, initial={})
-    if form.is_valid():
-      oldpath = form._cleaned_data()['path']
-      if page:
-        oldpath = page.path
-      page = form.save(commit=False)
-      page.updated = datetime.datetime.now()
-      page.publish()
-      # path edited, remove old stuff
-      if page.path != oldpath:
-        oldpage = models.Page.get_by_key_name(oldpath)
-        oldpage.remove()
-      self.render_to_response("publishedpage.html", {'page': page})
-    else:
-      self.render_form(form)
+#class PageHandler(BaseHandler):
+#  def render_form(self, form):
+#    self.render_to_response("editpage.html", {'form': form})
+#
+#  @with_page
+#  def get(self, page):
+#    self.render_form(PageForm(
+#        instance=page,
+#        initial={
+#          'path': page and page.path or '/',
+#        }))
+#
+#  @xsrfutil.xsrf_protect
+#  @with_page
+#  def post(self, page):
+#    form = None
+#    # if the path has been changed, create a new page
+#    if page and page.path != self.request.POST['path']:
+#      form = PageForm(data=self.request.POST, instance=None, initial={})
+#    else:
+#      form = PageForm(data=self.request.POST, instance=page, initial={})
+#    if form.is_valid():
+#      oldpath = form._cleaned_data()['path']
+#      if page:
+#        oldpath = page.path
+#      page = form.save(commit=False)
+#      page.updated = datetime.datetime.now()
+#      page.publish()
+#      # path edited, remove old stuff
+#      if page.path != oldpath:
+#        oldpage = models.Page.get_by_key_name(oldpath)
+#        oldpage.remove()
+#      self.render_to_response("publishedpage.html", {'page': page})
+#    else:
+#      self.render_form(form)
 
 
 class PageDeleteHandler(BaseHandler):

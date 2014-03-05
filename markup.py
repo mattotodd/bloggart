@@ -18,9 +18,7 @@ available.
 import logging
 import re
 from cStringIO import StringIO
-
-from django.utils import html
-from django.utils import text
+from google.appengine.runtime import cgi
 
 import config
 import utils
@@ -64,7 +62,7 @@ def render_textile(content):
 # Mapping: string ID -> (human readable name, renderer)
 MARKUP_MAP = {
     'html':     ('HTML', lambda c: c),
-    'txt':      ('Plain Text', lambda c: html.linebreaks(html.escape(c))),
+    'txt':      ('Plain Text', lambda c: utils.linebreaks(cgi.escape(c))),
     'markdown': ('Markdown', render_markdown),
     'textile':  ('Textile', render_textile),
     'rst':      ('ReStructuredText', render_rst),
@@ -97,5 +95,5 @@ def render_summary(post):
   if match:
     return renderer(post.body[:match.start(0)])
   else:
-    return text.truncate_html_words(renderer(clean_content(post.body)),
+    return utils.smart_truncate(renderer(clean_content(post.body)),
                                     config.summary_length)

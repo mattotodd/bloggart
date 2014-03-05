@@ -4,8 +4,7 @@ import logging
 import re
 import urllib
 from xml.etree import ElementTree
-from django.utils import simplejson
-from django.utils import html
+import json as simplejson
 from google.appengine.api import urlfetch
 from google.appengine.ext import db
 from google.appengine.ext import deferred
@@ -18,6 +17,7 @@ import pygments
 import pygments.lexers
 import pygments.formatters
 import pygments.util
+import utils
 
 
 def disqus_request(method, request_type=urlfetch.GET, **kwargs):
@@ -74,7 +74,7 @@ class BloogBreakingMigration(BaseMigration):
     post_args = {
         'request_type': urlfetch.POST,
         'thread_id': thread_id,
-        'message': html.strip_tags(comment.body).encode('utf-8'),
+        'message': utils.strip_tags(comment.body).encode('utf-8'),
         'author_name': comment.name.encode('utf-8') if comment.name else 'Someone',
         'author_email': comment.email.encode('utf-8') if comment.email else 'nobody@notdot.net',
         'forum_api_key': self.forum_key,
