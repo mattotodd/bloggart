@@ -14,22 +14,36 @@ import xsrfutil
 
 #from django import forms
 #from google.appengine.ext.db import djangoforms
-from wtforms_appengine import Form, StringField, SelectField, Textarea, BooleanField
+from wtforms import Form, Field, StringField, SelectField, BooleanField, validators, ValidationError
+from wtforms.widgets import TextArea, TextInput
+
+class TagListField(Field):
+    widget = TextInput()
+
+    def _value(self):
+        if self.data:
+            return u', '.join(self.data)
+        else:
+            return u''
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            self.data = set([x.strip() for x in valuelist[0].split(',')])
+        else:
+            self.data = []
 
 
 class PostForm(Form):
   title = StringField(id='name')
-  body = StringField(id='message', widget=Textarea(attrs={
-      'id':'message',
-      'rows': 10,
-      'cols': 20}))
+  body = StringField(id='message', widget=TextArea())
   body_markup = SelectField(
     choices=[(k, v[0]) for k, v in markup.MARKUP_MAP.iteritems()])
-  tags = StringField(widget=Textarea())
-  draft = BooleanField(required=False)
-  class Meta:
-    model = models.BlogPost
-    fields = [ 'title', 'body', 'tags' ]
+  tags = TagListField()
+  draft = BooleanField()
+
+#  class Meta:
+#    model = models.BlogPost
+#    fields = [ 'title', 'body', 'tags' ]
 
 #class PostForm(Form):
 #  title = StringField(id='name')
@@ -95,8 +109,8 @@ class PostHandler(BaseHandler):
   @with_post
   def get(self, post):
     self.render_form(PostForm(
-        instance=post,
-        initial={
+        obj=post,
+        data={
           'draft': post and not post.path,
           'body_markup': post and post.body_markup or config.default_markup,
         }))
@@ -104,11 +118,19 @@ class PostHandler(BaseHandler):
   @xsrfutil.xsrf_protect
   @with_post
   def post(self, post):
-    form = PostForm(data=self.request.POST, instance=post,
-                    initial={'draft': post and post.published is None})
-    if form.is_valid():
-      post = form.save(commit=False)
-      if form.cleaned_data['draft']:# Draft post
+    form = PostForm(formdata=self.request.POST, obj=post,
+                    data={'draft': post and post.published is None})
+    if form.validate():
+      if post is None:
+          post = models.BlogPost(
+              title=form.title.data,
+              body=form.body.data,
+              body_markup = form.body_markup.data,
+              tags = form.tags.data)
+      else:
+          form.populate_obj(post)
+
+      if form.data['draft']:# Draft post
         post.published = datetime.datetime.max
         post.put()
       else:
@@ -119,7 +141,7 @@ class PostHandler(BaseHandler):
         post.publish()
       self.render_to_response("published.html", {
           'post': post,
-          'draft': form.cleaned_data['draft']})
+          'draft': form.data['draft']})
     else:
       self.render_form(form)
 
@@ -155,6 +177,21 @@ class RegenerateHandler(BaseHandler):
     deferred.defer(post_deploy.try_post_deploy, force=True)
     self.render_to_response("regenerating.html")
 
+class PageForm(Form):
+  path = StringField(id='path', validators=[validators.Regexp(r'(/[a-zA-Z0-9/]+)')])
+  title = StringField(id='title')
+  template = SelectField(choices=config.page_templates.items())
+  body = StringField(id='body', widget=TextArea())
+  class Meta:
+    model = models.Page
+    fields = [ 'path', 'title', 'template', 'body' ]
+
+  def validate_path(self):
+    data = self._cleaned_data()['path']
+    existing_page = models.Page.get_by_key_name(data)
+    if not data and existing_page:
+      raise ValidationError("The given path already exists.")
+    return data
 
 #class PageForm(djangoforms.ModelForm):
 #  path = forms.RegexField(
@@ -208,41 +245,41 @@ def with_page(fun):
   return decorate
 
 
-#class PageHandler(BaseHandler):
-#  def render_form(self, form):
-#    self.render_to_response("editpage.html", {'form': form})
-#
-#  @with_page
-#  def get(self, page):
-#    self.render_form(PageForm(
-#        instance=page,
-#        initial={
-#          'path': page and page.path or '/',
-#        }))
-#
-#  @xsrfutil.xsrf_protect
-#  @with_page
-#  def post(self, page):
-#    form = None
-#    # if the path has been changed, create a new page
-#    if page and page.path != self.request.POST['path']:
-#      form = PageForm(data=self.request.POST, instance=None, initial={})
-#    else:
-#      form = PageForm(data=self.request.POST, instance=page, initial={})
-#    if form.is_valid():
-#      oldpath = form._cleaned_data()['path']
-#      if page:
-#        oldpath = page.path
-#      page = form.save(commit=False)
-#      page.updated = datetime.datetime.now()
-#      page.publish()
-#      # path edited, remove old stuff
-#      if page.path != oldpath:
-#        oldpage = models.Page.get_by_key_name(oldpath)
-#        oldpage.remove()
-#      self.render_to_response("publishedpage.html", {'page': page})
-#    else:
-#      self.render_form(form)
+class PageHandler(BaseHandler):
+  def render_form(self, form):
+    self.render_to_response("editpage.html", {'form': form})
+
+  @with_page
+  def get(self, page):
+    self.render_form(PageForm(
+        obj=page,
+        data={
+          'path': page and page.path or '/',
+        }))
+
+  @xsrfutil.xsrf_protect
+  @with_page
+  def post(self, page):
+    form = None
+    # if the path has been changed, create a new page
+    if page and page.path != self.request.POST['path']:
+      form = PageForm(formdata=self.request.POST, obj=None, initial={})
+    else:
+      form = PageForm(formdata=self.request.POST, obj=page, initial={})
+    if form.validate():
+      oldpath = form._cleaned_data()['path']
+      if page:
+        oldpath = page.path
+      page = form.save(commit=False)
+      page.updated = datetime.datetime.now()
+      page.publish()
+      # path edited, remove old stuff
+      if page.path != oldpath:
+        oldpage = models.Page.get_by_key_name(oldpath)
+        oldpage.remove()
+      self.render_to_response("publishedpage.html", {'page': page})
+    else:
+      self.render_form(form)
 
 
 class PageDeleteHandler(BaseHandler):

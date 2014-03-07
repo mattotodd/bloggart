@@ -4,7 +4,23 @@
   <h2>{% if form.instance %}Edit{% else %}New{% endif %} Post</h2>
   <form method="post" action="">
     <table>
-      {{form}}
+        <tbody>
+            <tr>
+                <td> {{ form.title.label }}</td><td>{{ form.title() }}</td>
+            </tr>
+            <tr>
+                <td> {{ form.body.label }}</td><td>{{ form.body() }}</td>
+            </tr>
+            <tr>
+                <td> {{ form.body_markup.label }}</td><td>{{ form.body_markup() }}</td>
+            </tr>
+            <tr>
+                <td> {{ form.tags.label }}</td><td>{{ form.tags() }}</td>
+            </tr>
+            <tr>
+                <td> {{ form.draft.label }}</td><td>{{ form.draft() }}</td>
+            </tr>
+        </tbody>
     </table>
     <input type="hidden" name="xsrf" value="{{ ''|xsrf_token }}">
     <input type="submit" value="Submit post" />

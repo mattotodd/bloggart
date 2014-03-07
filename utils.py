@@ -33,6 +33,7 @@ for dir in TEMPLATE_DIRS:
         pass
 
 TEMPLATE_ENV = Environment(autoescape=True, extensions=['jinja2.ext.autoescape'], loader=ChoiceLoader(loaders))
+TEMPLATE_ENV.filters['xsrf_token'] = xsrfutil.xsrf_token
 
 
 def slugify(s):

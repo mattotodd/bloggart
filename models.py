@@ -42,7 +42,7 @@ class BlogDate(db.Model):
 
 
 class BlogPost(db.Model):
-  # The URL path to the blog post. Posts have a path iff they are published.
+  # The URL path to the blog post. Posts have a path if they are published.
   path = db.StringProperty()
   title = db.StringProperty(required=True, indexed=False)
   body_markup = db.StringProperty(choices=set(markup.MARKUP_MAP),

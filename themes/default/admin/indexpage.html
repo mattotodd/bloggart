@@ -18,8 +18,8 @@
 	  <a href="{{config.url_prefix}}/admin/newpage">Create new page...</a>
 	</p>
 
-   {% ifnotequal last_page -1 %}
-    <p>Pages {{offset|add:1}} to {{last_page|add:1}}</p>
+   {% if not last_page == -1 %}
+    <p>Pages {{offset+1}} to {{last_page+1}}</p>
     <table>
       <thead>
 	<tr><th>Path</th><th>Title</th><th>Created</th><th>Updated</th><th>Actions</th></tr>
@@ -28,20 +28,18 @@
         <tr>
 		  <td><a href="{{config.url_prefix}}{{page.path}}">{{page.path}}</a></td>
           <td>{{page.title}}</td>
-          <td>{{page.created|date:"Y-m-d"}}</td>
-		  <td>{{page.updated|date:"Y-m-d"}}</td>
+          <td>{{page.created.strftime("Y-m-d")}}</td>
+		  <td>{{page.updated.strftime("Y-m-d")}}</td>
 	  <td>
 	    <a href="{{config.url_prefix}}{{page.path|escape}}">View</a>
 	      |
 	    <a href="{{config.url_prefix}}/admin/page/{{page.path|escape}}">Edit</a>
         |
-      {% with config.url_prefix|add:"/admin/page/delete/"|add:page.path|escape as action %}
-        <form id="page_delete_form_{{page.path|escape}}" action="{{action}}" method="post"
+        <form id="page_delete_form_{{page.path|escape}}" action="{{"%s%s%s".format(config.url_prefix, "/admin/page/delete/", page.path)|escape}}" method="post"
           style="display:inline;margin:0;padding:0;background:none;border:none;">
-          <input type="hidden" name="xsrf" value="{{ action|xsrf_token}}">
+          <input type="hidden" name="xsrf" value="{{ "%s%s%s".format(config.url_prefix, "/admin/page/delete/", page.path)|escape|xsrf_token}}">
           <a href="#" onclick="javascript:delete_page('{{page.path|escape}}');">Delete</a>
         </form>
-      {% endwith %}
 	  </td>
 	</tr>
       {% endfor %}
@@ -50,18 +48,16 @@
     <p>
       No pages yet.
     </p>
-  {% endifnotequal %}
-  {% ifnotequal offset 0 %}
+  {% endif %}
+  {% if not offset == 0 %}
     <a href="?start={{prev_offset}}&count={{count}}">&lt;- Previous</a>
-  {% endifnotequal %}
-  {% if pages|length_is:count %}
+  {% endif %}
+  {% if pages|length == count %}
     <a href="?start={{next_offset}}&count={{count}}">Next -></a>
   {% endif %}
   <h2>Actions</h2>
-  {% with config.url_prefix|add:"/admin/regenerate" as action %}
-    <form method="post" action="{{action}}">
-      <input type="hidden" name="xsrf" value="{{ action|xsrf_token }}">
+    <form method="post" action="{{"%s%s".format(config.url_prefix, "/admin/regenerate")}}">
+      <input type="hidden" name="xsrf" value="{{ "%s%s".format(config.url_prefix, "/admin/regenerate")|xsrf_token }}">
       <input type="submit" value="Regenerate all content" />
     </form>
-  {% endwith %}
 {% endblock %}
