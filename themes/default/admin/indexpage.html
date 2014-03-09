@@ -28,8 +28,8 @@
         <tr>
 		  <td><a href="{{config.url_prefix}}{{page.path}}">{{page.path}}</a></td>
           <td>{{page.title}}</td>
-          <td>{{page.created.strftime("Y-m-d")}}</td>
-		  <td>{{page.updated.strftime("Y-m-d")}}</td>
+          <td>{{page.created.strftime("%Y-%m-%d")}}</td>
+		  <td>{{page.updated.strftime("%Y-%m-%d")}}</td>
 	  <td>
 	    <a href="{{config.url_prefix}}{{page.path|escape}}">View</a>
 	      |

@@ -18,7 +18,7 @@ available.
 import logging
 import re
 from cStringIO import StringIO
-from google.appengine.runtime import cgi
+import cgi
 
 import config
 import utils

@@ -1,10 +1,10 @@
 import os
 import re
 import unicodedata
+import cgi
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.template import _swap_settings
-from google.appengine.runtime import cgi
 from google.appengine.api.app_identity import get_application_id
 
 from jinja2 import Environment, ChoiceLoader, FileSystemLoader

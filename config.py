@@ -98,5 +98,5 @@ google_friends_comments = True # For comments.
 google_friends_members  = True # For a members container.
 
 # To format the date of your post.
-# http://docs.djangoproject.com/en/1.1/ref/templates/builtins/#now
+# http://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior
 date_format = "%d %B, %Y"

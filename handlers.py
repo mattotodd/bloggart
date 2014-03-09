@@ -41,24 +41,6 @@ class PostForm(Form):
   tags = TagListField()
   draft = BooleanField()
 
-#  class Meta:
-#    model = models.BlogPost
-#    fields = [ 'title', 'body', 'tags' ]
-
-#class PostForm(Form):
-#  title = StringField(id='name')
-#  body = StringField(id='message', widget=Textarea(attrs={
-#      'id':'message',
-#      'rows': 10,
-#      'cols': 20}))
-#  body_markup = forms.ChoiceField(
-#    choices=[(k, v[0]) for k, v in markup.MARKUP_MAP.iteritems()])
-#  tags = forms.CharField(widget=forms.Textarea(attrs={'rows': 5, 'cols': 20}))
-#  draft = forms.BooleanField(required=False)
-#  class Meta:
-#    model = models.BlogPost
-#    fields = [ 'title', 'body', 'tags' ]
-
 
 def with_post(fun):
   def decorate(self, post_id=None):
@@ -182,38 +164,13 @@ class PageForm(Form):
   title = StringField(id='title')
   template = SelectField(choices=config.page_templates.items())
   body = StringField(id='body', widget=TextArea())
-  class Meta:
-    model = models.Page
-    fields = [ 'path', 'title', 'template', 'body' ]
 
-  def validate_path(self):
-    data = self._cleaned_data()['path']
+  def validate_path(self, field):
+    data = self.data['path']
     existing_page = models.Page.get_by_key_name(data)
     if not data and existing_page:
       raise ValidationError("The given path already exists.")
     return data
-
-#class PageForm(djangoforms.ModelForm):
-#  path = forms.RegexField(
-#    widget=forms.TextInput(attrs={'id':'path'}),
-#    regex='(/[a-zA-Z0-9/]+)')
-#  title = forms.CharField(widget=forms.TextInput(attrs={'id':'title'}))
-#  template = forms.ChoiceField(choices=config.page_templates.items())
-#  body = forms.CharField(widget=forms.Textarea(attrs={
-#      'id':'body',
-#      'rows': 10,
-#      'cols': 20}))
-#  class Meta:
-#    model = models.Page
-#    fields = [ 'path', 'title', 'template', 'body' ]
-#
-#  def clean_path(self):
-#    data = self._cleaned_data()['path']
-#    existing_page = models.Page.get_by_key_name(data)
-#    if not data and existing_page:
-#      raise forms.ValidationError("The given path already exists.")
-#    return data
-
 
 class PageAdminHandler(BaseHandler):
   def get(self):
@@ -267,10 +224,20 @@ class PageHandler(BaseHandler):
     else:
       form = PageForm(formdata=self.request.POST, obj=page, initial={})
     if form.validate():
-      oldpath = form._cleaned_data()['path']
+      oldpath = form.data['path']
       if page:
         oldpath = page.path
-      page = form.save(commit=False)
+
+      if page is None:
+        page = models.Page(
+            path=form.path.data,
+            body=form.body.data,
+            title = form.title.data,
+            template = form.template.data)
+      else:
+        form.populate_obj(page)
+
+      page.put()
       page.updated = datetime.datetime.now()
       page.publish()
       # path edited, remove old stuff
